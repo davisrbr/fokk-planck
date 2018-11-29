@@ -103,7 +103,7 @@ def diffSol():
     return func, xbnds, ybnds, frames, interval
 
 # Change this line to change which function to plot
-animate, xbnds, ybnds, frames, interval = diffSol()
+animate, xbnds, ybnds, frames, interval = gravDiff()
 
 fig = plt.figure()
 ax = plt.axes(xlim=xbnds, ylim=ybnds)
