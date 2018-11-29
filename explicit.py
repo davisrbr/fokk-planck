@@ -44,12 +44,13 @@ def Bzero(Wj):
 def gaussianSetup():
     x0 = 0
     xf = 1
-    dx = (xf-x0)/64
+    J = 32
+    dx = (xf-x0)/J
     D = 1
     U = Ugiven
     fBND = Bdirichlet
-    it = 1000
-    dt = 10**-5 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
+    it = 10**5
+    dt = 10**-7 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
     x = np.arange(x0,xf,dx)
     sig = 0.1
     avg = (x0+xf)/2
@@ -84,6 +85,6 @@ line, = ax.plot([],[],lw=2)
 
 #for i in range(5):
 #    plt.plot(animate(i)[0],label=str(i))
-anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=20,blit=True)
+anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1,blit=True)
 plt.legend()
 plt.show()
