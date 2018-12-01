@@ -18,7 +18,7 @@ def explicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
     x = np.arange(x0-dx,xf+dx,dx)
-    F = -(U(x+dx)-U(x-dx))/(2*dx)
+    F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
     
 #    for t in range(1,it-1):
 #        W[:,t] = fBND(W[:,t])
@@ -48,13 +48,13 @@ def Bzero(Wj):
 def gaussianSetup():
     x0 = -0
     xf = 1
-    J = 32
+    J = 128
     dx = (xf-x0)/J
     D = 1
-    U = Ugiven
+    U = Ugrav
     fBND = Bdirichlet
     it = 10**5
-    dt = 10**-6 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
+    dt = 10**-5
     x = np.arange(x0,xf,dx)
     sig = 0.1
     avg = (x0+xf)/2
@@ -69,21 +69,36 @@ def Ugiven(x):
     a4 = 1
     return a0*k*T*(a4*x**4 + a3*x**3 + a2*x**2 + a1*x)
 
-def Uwell(x):
-    x0 = 0
-    x1 = 1
-    left = -10**4
-    right = 10**4
+def Ugrav(x):
+    g = 3
+    a1 = 412/3
+    d1 = -100
+    e1 = 927/64
+    a2 = 1552/37
+    d2 = -2508/37
+    e2 = 23571/592
     xf = np.zeros(len(x))
     for i in range(len(x)):
-        if x[i] < x0:
-            xf[i] = (x[i]-x0)*left
-        elif x[i] > x1:
-            xf[i] = (x[i]-x1)*right
+        if x[i] < 0.25:
+            xf[i] = a1*(x[i]**4+x[i]**3+x[i]**2)+d1*x[i]+e1
+        elif x[i] > 0.75:
+            xf[i] = a2*x[i]**4+d2*x[i]+e2
+        else:
+            xf[i] = g*x[i]
     return xf
 
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 W = explicit(W0,D,U,fBND,dx,dt,it,x0,xf)
+
+def areaCalc(W):
+    area = np.zeros(it)
+    for i in range(it):
+        area[i] = dx*np.sum(W[:,i])
+    return area
+
+area = areaCalc(W)
+print("Initial Area:",area[0])
+print("Final Area:",area[-1])
 
 # Animation Code Below
 def init():
@@ -97,14 +112,14 @@ def animate(i):
     return line,
 
 fig = plt.figure()
-ax = plt.axes(xlim=(x0,xf),ylim=(-3,5))
+ax = plt.axes(xlim=(x0,xf),ylim=(-0.5,5))
 line, = ax.plot([],[],lw=2)
 x_vals = np.linspace(x0,xf)
-ax.plot(x_vals, Ugiven(x_vals)+10, color = 'green')
+ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green')
 ax.grid()
 
 #for i in range(5):
 #    plt.plot(animate(i)[0],label=str(i))
-anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1,blit=True)
+anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=5,blit=True)
 #plt.legend()
 plt.show()
