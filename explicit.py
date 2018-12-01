@@ -18,12 +18,16 @@ def explicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
     x = np.arange(x0-dx,xf+dx,dx)
-    F = -(U(x+dx/50)-U(x-dx/50))/(dx/100)
+    F = -(U(x+dx)-U(x-dx))/(2*dx)
     
-    for t in range(1,it-1):
+#    for t in range(1,it-1):
+#        W[:,t] = fBND(W[:,t])
+#        W[1:J+1,t+1] = W[1:J+1,t-1] + 2*dt/(k*T)*(-(F[2:J+2]-F[0:J])/(2*dx)*W[1:J+1,t]-(W[2:J+2,t]-W[0:J,t])/(2*dx)*F[1:J+1]) + 2*dt*D*(W[2:J+2,t]-2*W[1:J+1,t]+W[0:J,t])/(dx**2)
+        
+    for t in range(0,it-1):
         W[:,t] = fBND(W[:,t])
-        W[1:J+1,t+1] = W[1:J+1,t-1] + 2*dt/(k*T)*(-(F[2:J+2]-F[0:J])/(2*dx)*W[1:J+1,t]-(W[2:J+2,t]-W[0:J,t])/(2*dx)*F[1:J+1]) + 2*dt*D*(W[2:J+2,t]-2*W[1:J+1,t]+W[0:J,t])/(dx**2)
-    
+        W[1:J+1,t+1] = W[1:J+1,t] + dt/(k*T)*(-(F[2:J+2]-F[0:J])/(2*dx)*W[1:J+1,t]-(W[2:J+2,t]-W[0:J,t])/(2*dx)*F[1:J+1]) + dt*D*(W[2:J+2,t]-2*W[1:J+1,t]+W[0:J,t])/(dx**2)
+
     return W
 
 # input is a J+2 length array
@@ -42,7 +46,7 @@ def Bzero(Wj):
     return Wj
 
 def gaussianSetup():
-    x0 = 0
+    x0 = -0
     xf = 1
     J = 32
     dx = (xf-x0)/J
@@ -50,7 +54,7 @@ def gaussianSetup():
     U = Ugiven
     fBND = Bdirichlet
     it = 10**5
-    dt = 10**-7 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
+    dt = 10**-6 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
     x = np.arange(x0,xf,dx)
     sig = 0.1
     avg = (x0+xf)/2
@@ -64,6 +68,19 @@ def Ugiven(x):
     a3 = -2
     a4 = 1
     return a0*k*T*(a4*x**4 + a3*x**3 + a2*x**2 + a1*x)
+
+def Uwell(x):
+    x0 = 0
+    x1 = 1
+    left = -10**4
+    right = 10**4
+    xf = np.zeros(len(x))
+    for i in range(len(x)):
+        if x[i] < x0:
+            xf[i] = (x[i]-x0)*left
+        elif x[i] > x1:
+            xf[i] = (x[i]-x1)*right
+    return xf
 
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 W = explicit(W0,D,U,fBND,dx,dt,it,x0,xf)
@@ -80,11 +97,14 @@ def animate(i):
     return line,
 
 fig = plt.figure()
-ax = plt.axes(xlim=(x0,xf),ylim=(0.05,5))
+ax = plt.axes(xlim=(x0,xf),ylim=(-3,5))
 line, = ax.plot([],[],lw=2)
+x_vals = np.linspace(x0,xf)
+ax.plot(x_vals, Ugiven(x_vals)+10, color = 'green')
+ax.grid()
 
 #for i in range(5):
 #    plt.plot(animate(i)[0],label=str(i))
 anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1,blit=True)
-plt.legend()
+#plt.legend()
 plt.show()
