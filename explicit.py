@@ -11,9 +11,9 @@ def explicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     
     # I'm sure I could make this two lines, but I didn't want to think
     W[1:J+1,0] = W0
-    W[1:J+1,1] = W0
+#    W[1:J+1,1] = W0
     W[:,0] = fBND(W[:,0])
-    W[:,1] = fBND(W[:,1])
+#    W[:,1] = fBND(W[:,1])
     
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
@@ -56,8 +56,8 @@ def gaussianSetup():
     it = 10**5
     dt = 10**-5
     x = np.arange(x0,xf,dx)
-    sig = 0.1
-    avg = (x0+xf)/2
+    sig = 0.01
+    avg = 0.5
     W0 = 1/(np.sqrt(2*np.pi)*sig)*np.exp(-(x-avg)**2/(2*sig**2))
     return W0,D,U,fBND,dx,dt,it,x0,xf
     
@@ -87,6 +87,15 @@ def Ugrav(x):
             xf[i] = g*x[i]
     return xf
 
+def Ubox(x0):
+    return  1e6*((1.0+np.tanh((x0-0.5-0.5)/1e-3))+(1.0-np.tanh((x0+0.5-0.5)/1e-3))) 
+
+def Umidpeak(x):
+    A = 384
+    C = -92
+    E = 4
+    return A*(x-0.5)**4+C*(x-0.5)**2+E
+
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 W = explicit(W0,D,U,fBND,dx,dt,it,x0,xf)
 
@@ -96,9 +105,23 @@ def areaCalc(W):
         area[i] = dx*np.sum(W[:,i])
     return area
 
+def area1D(W,dx):
+    area = dx*np.sum(W)
+    return area
+
+#def midCalc(W,x):
+#    mid = np.zeros(it)
+#    for i in range(it):
+#        for j in range(len(x)):
+#            mid[i] += dx*x[j]*W[j,i]
+#    return mid
+
 area = areaCalc(W)
 print("Initial Area:",area[0])
 print("Final Area:",area[-1])
+
+#x = np.arange(x0,xf,dx)
+#mid = midCalc(W,x)
 
 # Animation Code Below
 def init():
@@ -111,15 +134,26 @@ def animate(i):
     line.set_data(x,y)
     return line,
 
+def animateMid(i):
+    x = mid[i]
+    y = np.ones(it)
+    line.set_data(x,y)
+    return line,
+
+x_vals = np.linspace(x0,xf,512)
+sol = np.exp(-U(x_vals)/D)
+solA = area1D(sol,(xf-x0)/512)
+sol = sol/solA
+
 fig = plt.figure()
 ax = plt.axes(xlim=(x0,xf),ylim=(-0.5,5))
 line, = ax.plot([],[],lw=2)
-x_vals = np.linspace(x0,xf)
-ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green')
+ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='potential')
+ax.plot(x_vals, sol,'k',label='solution')
 ax.grid()
 
 #for i in range(5):
 #    plt.plot(animate(i)[0],label=str(i))
 anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=5,blit=True)
-#plt.legend()
+plt.legend()
 plt.show()
