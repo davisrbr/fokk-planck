@@ -48,13 +48,13 @@ def Bzero(Wj):
 def gaussianSetup():
     x0 = -0
     xf = 1
-    J = 128
+    J = 512
     dx = (xf-x0)/J
-    D = 1
+    D = 1.0
     U = Ugrav
     fBND = Bdirichlet
-    it = 10**5
-    dt = 10**-5
+    it = 10**6
+    dt = 10**-6
     x = np.arange(x0,xf,dx)
     sig = 0.01
     avg = 0.5
@@ -87,8 +87,11 @@ def Ugrav(x):
             xf[i] = g*x[i]
     return xf
 
+def Uconst(x):
+    return np.ones(len(x))
+
 def Ubox(x0):
-    return  1e6*((1.0+np.tanh((x0-0.5-0.5)/1e-3))+(1.0-np.tanh((x0+0.5-0.5)/1e-3))) 
+    return  1e3*((1.0+np.tanh((x0-0.9)/1e-3))+(1.0-np.tanh((x0-0.1)/1e-3))) 
 
 def Umidpeak(x):
     A = 384
@@ -109,12 +112,11 @@ def area1D(W,dx):
     area = dx*np.sum(W)
     return area
 
-#def midCalc(W,x):
-#    mid = np.zeros(it)
-#    for i in range(it):
-#        for j in range(len(x)):
-#            mid[i] += dx*x[j]*W[j,i]
-#    return mid
+def midCalc(W,x):
+    mid = np.zeros(it)
+    for i in range(it):
+        mid[i] = np.sum(dx*x*W[1:-1,i])
+    return mid
 
 area = areaCalc(W)
 print("Initial Area:",area[0])
@@ -134,11 +136,11 @@ def animate(i):
     line.set_data(x,y)
     return line,
 
-def animateMid(i):
-    x = mid[i]
-    y = np.ones(it)
-    line.set_data(x,y)
-    return line,
+#def animateMid(i):
+#    x = mid[i]
+#    y = np.ones(it)
+#    line.set_data(x,y)
+#    return line,
 
 x_vals = np.linspace(x0,xf,512)
 sol = np.exp(-U(x_vals)/D)
@@ -148,12 +150,14 @@ sol = sol/solA
 fig = plt.figure()
 ax = plt.axes(xlim=(x0,xf),ylim=(-0.5,5))
 line, = ax.plot([],[],lw=2)
-ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='potential')
-ax.plot(x_vals, sol,'k',label='solution')
+ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='Potential')
+ax.plot(x_vals, sol,'k',label='Analytic')
+#ax.plot(mid,np.ones(it),'.r',label='midpoint')
 ax.grid()
 
 #for i in range(5):
 #    plt.plot(animate(i)[0],label=str(i))
-anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=5,blit=True)
+anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1,blit=True)
 plt.legend()
+
 plt.show()
