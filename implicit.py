@@ -27,25 +27,27 @@ def implicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     x = np.arange(x0-dx,xf+dx,dx)
     F = -(U(x+dx/50)-U(x-dx/50))/(dx/100)
 
-    #initialize zeros for array
+    #initialize zeros for tridiagonal arrays
     a = np.zeros(J)
     b = np.zeros(J)
     c = np.zeros(J)
 
-    w = -F[1:-1]/D * dx
+    w = -F[1:-1]/D * dx #set up helper vector
+
     #set up tridiagonals
     a = alpha * (1 - w/2)
     b = 1 + alpha * ((1 + w/2) + (1 - w/2))
     c = alpha * (1 - w/2)
+
     #enforce b.c.s
     a = fBND(a)
     b = fBND(b)
     c = fBND(c)
-    diagonals = [b, a, c]
+    diagonals = [b, a, c] #put in list in order to create sparse matrix
+    #construct sparse tridiagonal matrix
+    A = diags(diagonals, [0, 1, -1]).toarray()
 
     for t in range(1,it-1):
-        #construct sparse tridiagonal matrix
-        A = diags(diagonals, [0, 1, -1]).toarray()
         r = np.linalg.solve(A, W[1:-1,t-1])
         #set solution
         W[1:-1,t] = r
@@ -76,14 +78,14 @@ def chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf):
     w = -F[1:-1]/D * dx
 
     #define new variables necessary for flux conservation
-    delta_m = np.power(w,-1) - np.power(np.exp(w)-1, -1)  
+    delta_m = np.power(w,-1) - np.power(np.exp(w)-1, -1)
     W_m = (w/2)/(np.sinh(w/2)) #may need to be rewritten for computational use (overflow may occur)
     W_plus = W_m * np.exp(w/2)
     W_minus = W_m * np.exp(-w/2)
 
 
 
-    for t in range(1,it-1): 
+    for t in range(1,it-1):
         a = alpha * W_plus
         b = 1 + alpha * (W_plus+W_minus) #may be ignoring important aspect of m+/- 1/2
         c = alpha * W_minus
