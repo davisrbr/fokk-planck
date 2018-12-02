@@ -25,32 +25,27 @@ def implicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
     x = np.arange(x0-dx,xf+dx,dx)
-    F = -(U(x+dx/50)-U(x-dx/50))/(dx/100)
+    F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
 
     #initialize zeros for tridiagonal arrays
     a = np.zeros(J)
     b = np.zeros(J)
     c = np.zeros(J)
 
-    w = -F[1:-1]/D * dx #set up helper vector
+    w = -F/D * dx #set up helper vector
 
     #set up tridiagonals
     a = alpha * (1 - w/2)
     b = 1 + alpha * ((1 + w/2) + (1 - w/2))
-    c = alpha * (1 - w/2)
+    c = alpha * (1 + w/2)
 
-    #enforce b.c.s
-    a = fBND(a)
-    b = fBND(b)
-    c = fBND(c)
     diagonals = [b, a, c] #put in list in order to create sparse matrix
-    #construct sparse tridiagonal matrix
-    A = diags(diagonals, [0, 1, -1]).toarray()
+    A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
 
     for t in range(1,it-1):
-        r = np.linalg.solve(A, W[1:-1,t-1])
-        #set solution
-        W[1:-1,t] = r
+        r = np.linalg.solve(A, W[:,t-1])
+        r = fBND(r) #enforce b.c.s
+        W[:,t] = r #set solution
 
     return W
 
@@ -82,7 +77,6 @@ def chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf):
     W_m = (w/2)/(np.sinh(w/2)) #may need to be rewritten for computational use (overflow may occur)
     W_plus = W_m * np.exp(w/2)
     W_minus = W_m * np.exp(-w/2)
-
 
 
     for t in range(1,it-1):
