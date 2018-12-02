@@ -16,7 +16,6 @@ def implicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     W = np.zeros((J+2,it+1))
     alpha = (D*dt)/dx**2  #alpha is dt/(kT*dx)
 
-
     # I'm sure I could make this two lines, but I didn't want to think
     W[1:J+1,0] = W0
     W[1:J+1,1] = W0
@@ -28,27 +27,26 @@ def implicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     x = np.arange(x0-dx,xf+dx,dx)
     F = -(U(x+dx/50)-U(x-dx/50))/(dx/100)
 
+    #initialize zeros for array
     a = np.zeros(J)
     b = np.zeros(J)
     c = np.zeros(J)
 
     w = -F[1:-1]/D * dx
+    #set up tridiagonals
+    a = alpha * (1 - w/2)
+    b = 1 + alpha * ((1 + w/2) + (1 - w/2))
+    c = alpha * (1 - w/2)
+    #enforce b.c.s
+    a = fBND(a)
+    b = fBND(b)
+    c = fBND(c)
+    diagonals = [b, a, c]
 
     for t in range(1,it-1):
-        #enforce b.c.s
-        # a = fBND(a)
-        # b = fBND(b)
-        # c = fBND(c)
-        #set up tridiagonals
-        a = alpha * (1 - w/2)
-        b = 1 + alpha * ((1 + w/2) + (1 - w/2))
-        c = alpha * (1 - w/2)
-
         #construct sparse tridiagonal matrix
-        diagonals = [b, a, c]
         A = diags(diagonals, [0, 1, -1]).toarray()
         r = np.linalg.solve(A, W[1:-1,t-1])
-
         #set solution
         W[1:-1,t] = r
 
