@@ -140,6 +140,29 @@ W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 W = implicit(W0,D,U,fBND,dx,dt,it,x0,xf)
 # W = chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf)
 
+def areaCalc(W):
+    area = np.zeros(it)
+    for i in range(it):
+        area[i] = dx*np.sum(W[:,i])
+    return area
+
+def area1D(W,dx):
+    area = dx*np.sum(W)
+    return area
+
+def midCalc(W,x):
+    mid = np.zeros(it)
+    for i in range(it):
+        mid[i] = np.sum(dx*x*W[1:-1,i])
+    return mid
+
+area = areaCalc(W)
+print("Initial Area:",area[0])
+print("Final Area:",area[-1])
+
+#x = np.arange(x0,xf,dx)
+#mid = midCalc(W,x)
+
 # Animation Code Below
 def init():
     line.set_data([],[])
@@ -151,12 +174,28 @@ def animate(i):
     line.set_data(x,y)
     return line,
 
+#def animateMid(i):
+#    x = mid[i]
+#    y = np.ones(it)
+#    line.set_data(x,y)
+#    return line,
+
+x_vals = np.linspace(x0,xf,512)
+sol = np.exp(-U(x_vals)/D)
+solA = area1D(sol,(xf-x0)/512)
+sol = sol/solA
+
 fig = plt.figure()
-ax = plt.axes(xlim=(x0,xf),ylim=(0.05,5))
+ax = plt.axes(xlim=(x0,xf),ylim=(-0.5,5))
 line, = ax.plot([],[],lw=2)
+ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='Potential')
+ax.plot(x_vals, sol,'k',label='Analytic')
+#ax.plot(mid,np.ones(it),'.r',label='midpoint')
+ax.grid()
 
 #for i in range(5):
 #    plt.plot(animate(i)[0],label=str(i))
 anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1,blit=True)
 plt.legend()
+
 plt.show()
