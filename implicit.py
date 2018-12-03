@@ -6,52 +6,49 @@ k = 1.
 T = 1.
 
 def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
-    '''Implicit solver
-            W0 initial conditions
-            D diffusion term
-            U potential
-            fBND boundary variables
-            '''
+    '''Implicit solver: solves fokker-planck implicitly given formulation in Fokker-Planck project paper.
+        W0 initial conditions
+        D diffusion term
+        U potential
+        fBND boundary variables
+        dx spatial step
+        dt time step
+        it iterations
+        x0 start x
+        xf end x'''
     J = len(W0)
     W = np.zeros((J+2,it+1))
     alpha = (D*dt)/dx**2  #alpha is dt/(kT*dx)
 
-    # I'm sure I could make this two lines, but I didn't want to think
+    #boundary conditions
     W[1:J+1,0] = W0
-    W[1:J+1,1] = W0
     W[:,0] = fBND(W[:,0])
-    W[:,1] = fBND(W[:,1])
 
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
     x = np.arange(x0-dx,xf+dx,dx)
     F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
 
-    #initialize zeros for tridiagonal arrays
-    c = np.zeros(J)
-    b = np.zeros(J)
-    a = np.zeros(J)
-
     #set up tridiagonals
-    c = dt*(-1/(2*k*T*dx)*F[1:-1] - D/dx**2)
-    b = dt*(1/dt + (-F[:-2]+F[2:])/(2*k*T*dx) + (2*D)/dx**2)
-    a = dt*(1/(2*k*T*dx)*F[1:-1] - D/dx**2)
+    c = dt*(-1/(2*k*T*dx)*F[1:-1] - D/dx**2) #lower diagonal
+    b = dt*(1/dt + (-F[:-2]+F[2:])/(2*k*T*dx) + (2*D)/dx**2) #main diagonal
+    a = dt*(1/(2*k*T*dx)*F[1:-1] - D/dx**2) #upper diagonal
 
     #add no flux conditions
     c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    c[-1] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
     b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
     b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
     a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    a[-1] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
 
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
 
     for t in range(1,it):
+        W[:,t] = fBND(W[:,t-1])
         r = np.linalg.solve(A, W[1:-1,t-1])
         W[1:-1,t] = r #set solution
-
     return W
 
 def chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf):
@@ -65,36 +62,40 @@ def chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf):
     W = np.zeros((J+2,it+1))
     alpha = (D*dt)/dx**2  #alpha is dt/(kT*dx)
 
-    # I'm sure I could make this two lines, but I didn't want to think
+    #boundary conditions
     W[1:J+1,0] = W0
-    W[1:J+1,1] = W0
     W[:,0] = fBND(W[:,0])
-    W[:,1] = fBND(W[:,1])
 
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
     x = np.arange(x0-dx,xf+dx,dx)
     F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
 
-
+    #set up chang cooper 'adaptive stepping'
     w = -F*dx/D
     delta = 1/w - 1/(np.exp(w) - 1)
 
-    #set up tridiagonals
-    c = dt*(-1/(2*k*T*dx)*F[1:-1]*(1-delta[1:-1]) - D/dx**2)
-    b = dt*(1/dt + (-F[:-2]*delta[1:-1]+F[2:]*(1-delta[2:]))/(2*k*T*dx) + (2*D)/dx**2)
-    a = dt*(1/(2*k*T*dx)*F[1:-1]*delta[2:] - D/dx**2)
+    #set up tridiagonals w/ chang cooper stepping
+    c = dt*(-1/(2*k*T*dx)*F[1:-1]*(1-delta[1:-1]) - D/dx**2) #lower diagonal
+    b = dt*(1/dt + (-F[:-2]*delta[1:-1]+F[2:]*(1-delta[2:]))/(2*k*T*dx) + (2*D)/dx**2) #main diagonal
+    a = dt*(1/(2*k*T*dx)*F[1:-1]*delta[2:] - D/dx**2) #upper diagonal
+
+    #add no flux conditions NOTE: check correctness
+    c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
+    b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
+    a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
 
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
-
 
     for t in range(1,it):
         r = np.linalg.solve(A, W[1:-1,t-1])
         W[1:-1,t] = r #set solution
 
     return W
-
 
 # input is a J+2 length array
 # outputs the same array with W[0] and W[-1] set to boundaries
@@ -135,11 +136,18 @@ def Ugiven(x):
     a4 = 1
     return a0*k*T*(a4*x**4 + a3*x**3 + a2*x**2 + a1*x)
 
+def Fgiven(x):
+    a0 = 300
+    a1 = -0.38
+    a2 = 1.37
+    a3 = -2
+    a4 = 1
+    return -a0*k*T*(4*a4*x**3 + 3*a3*x**2 + 2*a2*x + a1)
 
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 
-# W = implicitL(W0,D,U,fBND,dx,dt,it,x0,xf)
-W = chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf)
+W = implicitL(W0,D,U,fBND,dx,dt,it,x0,xf)
+# W = chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf)
 
 def areaCalc(W):
     area = np.zeros(it)
@@ -170,7 +178,7 @@ def error(W):
 
     return (W.T - sol.T).T
 Err = error(W)
-print("Error:", Err)
+print("Error sum:", np.sum(Err))
 
 
 #x = np.arange(x0,xf,dx)
@@ -220,6 +228,7 @@ def animate(i):
     legend = plt.legend()
 
     return [line,line2]# + [legend]
+
 
 anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1,blit=True)
 
