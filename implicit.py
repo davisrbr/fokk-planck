@@ -121,7 +121,7 @@ def gaussianSetup():
     D = 1
     U = Ugiven
     fBND = Bdirichlet
-    it = 10**3
+    it = 10**4
     dt = 10**-5 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
     x = np.arange(x0,xf,dx)
     sig = 0.1
@@ -136,6 +136,7 @@ def Ugiven(x):
     a3 = -2
     a4 = 1
     return a0*k*T*(a4*x**4 + a3*x**3 + a2*x**2 + a1*x)
+
 
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 
@@ -162,19 +163,21 @@ area = areaCalc(W)
 print("Initial Area:",area[0])
 print("Final Area:",area[-1])
 
+def error(W):
+    # W# J x T
+    x_vals = np.linspace(x0,xf,len(W))
+    sol = np.exp(-U(x_vals)/D)
+    solA = area1D(sol,(xf-x0)/len(W))
+    sol = sol/solA
+
+    return (W.T - sol.T).T
+Err = error(W)
+print("Error:", Err)
+
+
 #x = np.arange(x0,xf,dx)
 #mid = midCalc(W,x)
 
-# Animation Code Below
-def init():
-    line.set_data([],[])
-    return line,
-
-def animate(i):
-    x = np.arange(x0,xf,dx)
-    y = W[1:-1,i+1]
-    line.set_data(x,y)
-    return line,
 
 #def animateMid(i):
 #    x = mid[i]
@@ -188,16 +191,61 @@ solA = area1D(sol,(xf-x0)/512)
 sol = sol/solA
 
 fig = plt.figure()
-ax = plt.axes(xlim=(x0,xf),ylim=(-0.5,5))
+ax = plt.axes(xlim=(x0,xf),ylim=(-5,5))
 line, = ax.plot([],[],lw=2)
+line2, = ax.plot([],[],lw=2)
 ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='Potential')
 ax.plot(x_vals, sol,'k',label='Analytic')
+
 #ax.plot(mid,np.ones(it),'.r',label='midpoint')
 ax.grid()
+legend = plt.legend()
 
 #for i in range(5):
 #    plt.plot(animate(i)[0],label=str(i))
+# Animation Code Below
+def init():
+    line.set_data([],[])
+    line2.set_data([],[])
+    return [line,line2]
+
+def animate(i):
+    x = np.arange(x0,xf,dx)
+    y = W[1:-1,i+1]
+    y2 = Err[1:-1,i+1]
+    line.set_data(x,y)
+    line.set_label("Numerical")
+    line2.set_data(x,y2)
+    line2.set_label("Error")
+    line2.set_color("r")
+    # legend.remove()
+    legend = plt.legend()
+
+    return [line,line2]# + [legend]
+
 anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1,blit=True)
-plt.legend()
 
 plt.show()
+
+
+# # Animation Code Below
+# def init2():
+#     line.set_data([],[])
+#     return line,
+
+# def animate2(i):
+#     x = np.arange(x0,xf,dx)
+#     y = Err[1:-1,i+1]
+#     line.set_data(x,y)
+#     return line,
+
+# fig = plt.figure()
+# ax = plt.axes(xlim=(x0,xf),ylim=(-5,5))
+# line, = ax.plot([],[],lw=2)
+# ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='Potential')
+# ax.plot(x_vals, sol,'k',label='Analytic')
+# ax.grid()
+# anim = animation.FuncAnimation(fig, animate2, init_func=init2,frames=it,interval=1,blit=True)
+# plt.legend()
+
+# plt.show()
