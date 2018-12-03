@@ -37,10 +37,17 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
     b = dt*(1/dt + (-F[:-2]+F[2:])/(2*k*T*dx) + (2*D)/dx**2)
     a = dt*(1/(2*k*T*dx)*F[1:-1] - D/dx**2)
 
+    #add no flux conditions
+    c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    c[-1] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
+    b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
+    a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    a[-1] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+
 
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
-    print(A)
 
     for t in range(1,it):
         r = np.linalg.solve(A, W[1:-1,t-1])
@@ -227,25 +234,3 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1
 
 plt.show()
 
-
-# # Animation Code Below
-# def init2():
-#     line.set_data([],[])
-#     return line,
-
-# def animate2(i):
-#     x = np.arange(x0,xf,dx)
-#     y = Err[1:-1,i+1]
-#     line.set_data(x,y)
-#     return line,
-
-# fig = plt.figure()
-# ax = plt.axes(xlim=(x0,xf),ylim=(-5,5))
-# line, = ax.plot([],[],lw=2)
-# ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='Potential')
-# ax.plot(x_vals, sol,'k',label='Analytic')
-# ax.grid()
-# anim = animation.FuncAnimation(fig, animate2, init_func=init2,frames=it,interval=1,blit=True)
-# plt.legend()
-
-# plt.show()
