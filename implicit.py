@@ -28,23 +28,23 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
     F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
 
     #initialize zeros for tridiagonal arrays
-    a = np.zeros(J)
-    b = np.zeros(J)
     c = np.zeros(J)
+    b = np.zeros(J)
+    a = np.zeros(J)
 
     #set up tridiagonals
-    a = dt*(-1/(2*k*T*dx)*F[1:-1] - D/dx**2)
+    c = dt*(-1/(2*k*T*dx)*F[1:-1] - D/dx**2)
     b = dt*(1/dt + (-F[:-2]+F[2:])/(2*k*T*dx) + (2*D)/dx**2)
-    c = dt*(1/(2*k*T*dx)*F[1:-1] - D/dx**2)
+    a = dt*(1/(2*k*T*dx)*F[1:-1] - D/dx**2)
 
 
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
     print(A)
 
-    for t in range(1,it-1):
+    for t in range(1,it):
         r = np.linalg.solve(A, W[1:-1,t-1])
-        r = fBND(r) #enforce b.c.s
+        #r = fBND(r) #enforce b.c.s
         #input()
         #print(r)
         W[1:-1,t] = r #set solution
@@ -116,12 +116,12 @@ def Bzero(Wj):
 def gaussianSetup():
     x0 = 0
     xf = 1
-    J = 32
+    J = 128
     dx = (xf-x0)/J
     D = 1
     U = Ugiven
     fBND = Bdirichlet
-    it = 10**4
+    it = 10**3
     dt = 10**-5 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
     x = np.arange(x0,xf,dx)
     sig = 0.1
