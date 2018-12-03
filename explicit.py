@@ -91,7 +91,7 @@ def Uconst(x):
     return np.ones(len(x))
 
 def Ubox(x0):
-    return  1e3*((1.0+np.tanh((x0-0.9)/1e-3))+(1.0-np.tanh((x0-0.1)/1e-3))) 
+    return  1.5*1e0*((1.0+np.tanh((x0-0.9)/1e-3))+(1.0-np.tanh((x0-0.1)/1e-3))) 
 
 def Umidpeak(x):
     A = 384
