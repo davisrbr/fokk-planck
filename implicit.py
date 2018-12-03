@@ -16,6 +16,7 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
         it iterations
         x0 start x
         xf end x'''
+
     J = len(W0)
     W = np.zeros((J+2,it+1))
     alpha = (D*dt)/dx**2  #alpha is dt/(kT*dx)
@@ -52,12 +53,17 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
     return W
 
 def chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf):
-    '''Implicit solver
-            W0 initial conditions
-            D diffusion term
-            U potential
-            fBND boundary variables
-            '''
+    '''Chang-cooper solver: solves fokker-planck implicitly given formulation in Chang and Cooper (1970).
+        W0 initial conditions
+        D diffusion term
+        U potential
+        fBND boundary variables
+        dx spatial step
+        dt time step
+        it iterations
+        x0 start x
+        xf end x'''
+
     J = len(W0)
     W = np.zeros((J+2,it+1))
     alpha = (D*dt)/dx**2  #alpha is dt/(kT*dx)
@@ -95,6 +101,54 @@ def chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf):
         r = np.linalg.solve(A, W[1:-1,t-1])
         W[1:-1,t] = r #set solution
 
+    return W
+
+def implicitP(W0,D,U,fBND,dx,dt,it,x0,xf):
+    '''Implicit solver: solves fokker-planck implicitly given formulation in Park and Petrosian.
+        W0 initial conditions
+        D diffusion term
+        U potential
+        fBND boundary variables
+        dx spatial step
+        dt time step
+        it iterations
+        x0 start x
+        xf end x'''
+
+    J = len(W0)
+    W = np.zeros((J+2,it+1))
+    alpha = (D*dt)/dx**2  #alpha is dt/(kT*dx)
+
+    #boundary conditions
+    W[1:J+1,0] = W0
+    W[:,0] = fBND(W[:,0])
+
+    # Setting force equal to slope between x+dx/50 and x-dx/50
+    F = np.zeros(J+2)
+    x = np.arange(x0-dx,xf+dx,dx)
+    F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
+
+    w = -F[1:-1]/D * dx
+    #set up tridiagonals using Park and Petrosian
+    c = alpha*(1-w/2) #lower diagonal
+    b = 1 + alpha*((1+w/2) + (1-w/2)) #main diagonal
+    a = alpha*(1+w/2) #upper diagonal
+
+    #add no flux conditions
+    c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
+    b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
+    a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+
+    diagonals = [b, a, c] #put in list in order to create sparse matrix
+    A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
+
+    for t in range(1,it):
+        W[:,t] = fBND(W[:,t-1])
+        r = np.linalg.solve(A, W[1:-1,t-1])
+        W[1:-1,t] = r #set solution
     return W
 
 # input is a J+2 length array
@@ -146,8 +200,9 @@ def Fgiven(x):
 
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 
-W = implicitL(W0,D,U,fBND,dx,dt,it,x0,xf)
+# W = implicitL(W0,D,U,fBND,dx,dt,it,x0,xf)
 # W = chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf)
+W = implicitP(W0,D,U,fBND,dx,dt,it,x0,xf)
 
 def areaCalc(W):
     area = np.zeros(it)
