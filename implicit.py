@@ -27,7 +27,8 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
 
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
-    x = np.arange(x0-dx,xf+dx,dx)
+    # x = np.arange(x0-dx,xf+dx,dx)
+    x = (x0 + (np.arange(J+2) + 0.5)*dx) #use cell-centered
     F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
 
     #set up tridiagonals
@@ -35,19 +36,11 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
     b = dt*(1/dt + (-F[:-2]+F[2:])/(2*k*T*dx) + (2*D)/dx**2) #main diagonal
     a = dt*(1/(2*k*T*dx)*F[1:-1] - D/dx**2) #upper diagonal
 
-    #add no flux conditions
-    c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
-    b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
-    b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
-    a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
-
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
 
     for t in range(1,it):
-        W[:,t] = fBND(W[:,t-1])
+        W[:,t] = fBND(W[:,t-1]) #this does not do anything right now
         r = np.linalg.solve(A, W[1:-1,t-1])
         W[1:-1,t] = r #set solution
     return W
@@ -86,13 +79,13 @@ def chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf):
     b = dt*(1/dt + (-F[:-2]*delta[1:-1]+F[2:]*(1-delta[2:]))/(2*k*T*dx) + (2*D)/dx**2) #main diagonal
     a = dt*(1/(2*k*T*dx)*F[1:-1]*delta[2:] - D/dx**2) #upper diagonal
 
-    #add no flux conditions NOTE: check correctness
-    c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
-    b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
-    b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
-    a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    ##add no flux conditions NOTE: check correctness
+    #c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    #c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    #b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
+    #b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
+    #a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    #a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
 
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
@@ -135,12 +128,12 @@ def implicitP(W0,D,U,fBND,dx,dt,it,x0,xf):
     a = alpha*(1+w/2) #upper diagonal
 
     #add no flux conditions
-    c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
-    b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
-    b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
-    a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
-    a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    # c[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    # c[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
+    # b[0 ] = ((-F[1]+F[0])/(2*k*T*dx) - (2*D)/dx**2)
+    # b[-1] = ((-F[-2]+F[-1])/(2*k*T*dx) - (2*D)/dx**2)
+    # a[0 ] = (-1/(2*k*T*dx)*F[0] + D/dx**2)
+    # a[-2] = (-1/(2*k*T*dx)*F[-1] + D/dx**2)
 
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
@@ -172,7 +165,7 @@ def gaussianSetup():
     J = 128
     dx = (xf-x0)/J
     D = 1
-    U = Ugiven
+    U = Ubox
     fBND = Bdirichlet
     it = 10**4
     dt = 10**-5 # Terrible with dt > 10**-5 and super slow with dt < 10**-6
@@ -190,6 +183,15 @@ def Ugiven(x):
     a4 = 1
     return a0*k*T*(a4*x**4 + a3*x**3 + a2*x**2 + a1*x)
 
+def Ubox(x0):
+    return  1.5*1e0*((1.0+np.tanh((x0-0.9)/1e-3))+(1.0-np.tanh((x0-0.1)/1e-3)))
+
+def Umidpeak(x):
+    A = 384
+    C = -92
+    E = 4
+    return A*(x-0.5)**4+C*(x-0.5)**2+E
+
 def Fgiven(x):
     a0 = 300
     a1 = -0.38
@@ -200,9 +202,9 @@ def Fgiven(x):
 
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 
-# W = implicitL(W0,D,U,fBND,dx,dt,it,x0,xf)
+W = implicitL(W0,D,U,fBND,dx,dt,it,x0,xf)
 # W = chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf)
-W = implicitP(W0,D,U,fBND,dx,dt,it,x0,xf)
+# W = implicitP(W0,D,U,fBND,dx,dt,it,x0,xf)
 
 def areaCalc(W):
     area = np.zeros(it)
@@ -220,9 +222,9 @@ def midCalc(W,x):
         mid[i] = np.sum(dx*x*W[1:-1,i])
     return mid
 
-area = areaCalc(W)
-print("Initial Area:",area[0])
-print("Final Area:",area[-1])
+# area = areaCalc(W)
+# print("Initial Area:",area[0])
+# print("Final Area:",area[-1])
 
 def error(W):
     # W# J x T
@@ -234,17 +236,6 @@ def error(W):
     return (W.T - sol.T).T
 Err = error(W)
 print("Error sum:", np.sum(Err))
-
-
-#x = np.arange(x0,xf,dx)
-#mid = midCalc(W,x)
-
-
-#def animateMid(i):
-#    x = mid[i]
-#    y = np.ones(it)
-#    line.set_data(x,y)
-#    return line,
 
 x_vals = np.linspace(x0,xf,512)
 sol = np.exp(-U(x_vals)/D)
@@ -258,12 +249,9 @@ line2, = ax.plot([],[],lw=2)
 ax.plot(x_vals, U(x_vals)-min(U(x_vals)), color = 'green',label='Potential')
 ax.plot(x_vals, sol,'k',label='Analytic')
 
-#ax.plot(mid,np.ones(it),'.r',label='midpoint')
 ax.grid()
 legend = plt.legend()
 
-#for i in range(5):
-#    plt.plot(animate(i)[0],label=str(i))
 # Animation Code Below
 def init():
     line.set_data([],[])
