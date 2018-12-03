@@ -2,10 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from scipy.sparse import diags
-k = 1.
-T = 1.
+k = 1
+T = 1
 
-def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
+def implicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     '''Implicit solver
             W0 initial conditions
             D diffusion term
@@ -32,22 +32,20 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
     b = np.zeros(J)
     c = np.zeros(J)
 
-    #set up tridiagonals
-    a = -1/(2*k*T*dx)*F[1:-1] - D/dx**2
-    b = 1 + (F[:-2]-F[2:])/(2*k*T*dx) + (2*D)/dx**2
-    c = 1/(2*k*T*dx)*F[1:-1] - D/dx**2
+    w = -F/D * dx #set up helper vector
 
+    #set up tridiagonals
+    a = alpha * (1 - w/2)
+    b = 1 + alpha * ((1 + w/2) + (1 - w/2))
+    c = alpha * (1 + w/2)
 
     diagonals = [b, a, c] #put in list in order to create sparse matrix
     A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
-    print(A)
 
     for t in range(1,it-1):
-        r = np.linalg.solve(A, W[1:-1,t-1])
+        r = np.linalg.solve(A, W[:,t-1])
         r = fBND(r) #enforce b.c.s
-        input()
-        print(r)
-        W[1:-1,t] = r #set solution
+        W[:,t] = r #set solution
 
     return W
 
@@ -139,7 +137,7 @@ def Ugiven(x):
 
 W0,D,U,fBND,dx,dt,it,x0,xf = gaussianSetup()
 
-W = implicitL(W0,D,U,fBND,dx,dt,it,x0,xf)
+W = implicit(W0,D,U,fBND,dx,dt,it,x0,xf)
 # W = chang_cooper(W0,D,U,fBND,dx,dt,it,x0,xf)
 
 def areaCalc(W):
