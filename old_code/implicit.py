@@ -41,30 +41,12 @@ def implicitL(W0,D,U,fBND,dx,dt,it,x0,xf):
     W = np.zeros((J,it))
     alpha = (D*dt)/dx**2  #alpha is dt/(kT*dx)
 
-    ##boundary conditions
-    #W[:,0] = W0
-    #W[:,0] = fBND(W[:,0])
-
     # Setting force equal to slope between x+dx/50 and x-dx/50
     F = np.zeros(J+2)
     # x = np.arange(x0-dx,xf+dx,dx) #face-centered
     x = (x0-dx + (np.arange(J+2) + 0.5)*dx) #use cell-centered
     F = -(U(x+dx/100)-U(x-dx/100))/(dx/50)
 
-    #set up tridiagonals
-    # c = dt*(-1/(2*k*T*dx)*F[1:-1] - D/dx**2) #lower diagonal
-    # b = dt*(1/dt + (-F[:-2]+F[2:])/(2*k*T*dx) + (2*D)/dx**2) #main diagonal
-    # a = dt*(1/(2*k*T*dx)*F[1:-1] - D/dx**2) #upper diagonal
-
-    # diagonals = [b, a, c] #put in list in order to create sparse matrix
-    # A = diags(diagonals, [0, 1, -1]).toarray() #construct sparse tridiagonal matrix
-    # A = np.zeros((J,J))
-    # for i in range(1, J-1):
-    #     A[i,i-1] = dt*(-1/(2*k*T*dx)*F[i] - D/dx**2)
-    #     A[i,i] = dt*(1/dt + (-F[i-1]+F[i+1])/(2*k*T*dx) + (2*D)/dx**2)
-    #     A[i,i+1] = dt*(1/(2*k*T*dx)*F[i] - D/dx**2)
-    # A[0,0] = 1
-    # A[J-1,J-1] = 1
     W = np.zeros((J+2,it))
     xb = np.zeros(J+2)
     xb = x
