@@ -34,7 +34,7 @@ def split(W0,D,U,fBND,dx,dt,it,x0,xf):
 #        W[1:J+1,t+1] = W[1:J+1,t-1] + 2*dt/(k*T)*(-(F[2:J+2]-F[0:J])/(2*dx)*W[1:J+1,t]-(W[2:J+2,t]-W[0:J,t])/(2*dx)*F[1:J+1]) + 2*dt*D*(W[2:J+2,t]-2*W[1:J+1,t]+W[0:J,t])/(dx**2)
     temp = np.zeros(J+2)
     B = np.zeros(J)
-    for t in range(0,it-1):
+    for t in range(0,it):
         W[:,t] = fBND(W[:,t])
         temp[1:J+1] = W[1:J+1,t] + (dt/k/T) * (-(F[2:J+2]-F[0:J])*W[1:J+1,t]/(2*dx)-(W[2:J+2,t]-W[0:J,t])*F[1:J+1]/(2*dx))
         temp[:] = fBND(temp)
