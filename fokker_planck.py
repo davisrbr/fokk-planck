@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
-
+#PLOT
+#EXPLICIT: GIVEN, BOX, MIDPEAK
+#SEMI: GIVEN, GRAV, 
 """CONFIG"""
 k = 1
 T = 1
@@ -11,9 +13,9 @@ DELTA_T = 10**-5
 GAUSSIAN_SIGMA = 0.1
 GAUSSIAN_AVG = 0.5
 SKIP = 100 #how many values to skip from W
-U_FUNC = "Ugiven" #string of function to use
+U_FUNC = "Ubox" #string of function to use
 """U_FUNC Options: Ugiven, Ugrav, Uconst, Ubox, Umidpeak"""
-METHOD = "semi_implicit" #string of function to use, defaults to explicit
+METHOD = "explicit" #string of function to use, defaults to explicit
 """METHOD Options: explicit, semi_implicit, implicit, implicitL, implicitP, chang_cooper"""
 SAVE_VIDEO = False
 WITH_ERROR = False
@@ -287,8 +289,9 @@ def Bzero(Wj):
     Wj[-1] = 0
     return Wj
 def Bslope(Wj):
-    Wj[0] = Wj[1] - (Wj[2]-Wj[1])
+    Wj[0] = Wj[1] + (Wj[2]-Wj[1])
     Wj[-1] = Wj[-2] + (Wj[-3] - Wj[-2])
+    return Wj
 
 def setup():
     x0 = -0
@@ -299,18 +302,24 @@ def setup():
 
     if U_FUNC == "Ugiven":
         U = Ugiven
+        fBND = Bzero
     elif U_FUNC == "Ugrav":
         U = Ugrav
+        fBND = Bslope
     elif U_FUNC == "Uconst":
         U = Uconst
+        fBND = Bslope
     elif U_FUNC == "Ubox":
         U = Ubox
+        fBND = Bslope
     elif U_FUNC == "Umidpeak":
         U = Umidpeak
+        fBND = Bzero
     else:
-        U_FUNC == Ugiven
+        U = Ugiven
+        fBND = Bzero
 
-    fBND = Bzero
+    # fBND = Bslope
     it = ITERATIONS
     dt = DELTA_T
     x = np.arange(x0,xf,dx)
