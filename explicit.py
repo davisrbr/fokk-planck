@@ -27,7 +27,6 @@ def explicit(W0,D,U,fBND,dx,dt,it,x0,xf):
     for t in range(0,it-1):
         W[:,t] = fBND(W[:,t])
         W[1:J+1,t+1] = W[1:J+1,t] + dt/(k*T)*(-(F[2:J+2]-F[0:J])/(2*dx)*W[1:J+1,t]-(W[2:J+2,t]-W[0:J,t])/(2*dx)*F[1:J+1]) + dt*D*(W[2:J+2,t]-2*W[1:J+1,t]+W[0:J,t])/(dx**2)
-
     return W
 
 # input is a J+2 length array
@@ -44,21 +43,25 @@ def Bzero(Wj):
     Wj[0] = 0
     Wj[-1] = 0
     return Wj
+def Bslope(Wj):
+    Wj[0] = Wj[1] - (Wj[2]-Wj[1])
+    Wj[-1] = Wj[-2] + (Wj[-3] - Wj[-2])
 
 def gaussianSetup():
     x0 = -0
     xf = 1
-    J = 512
+    J = 128
     dx = (xf-x0)/J
-    D = 1.0
+    D = 1
     U = Ugrav
-    fBND = Bdirichlet
-    it = 10**6
-    dt = 10**-6
+    fBND = Bzero
+    it = 10**5
+    dt = 10**-5
     x = np.arange(x0,xf,dx)
-    sig = 0.01
+    sig = 0.1
     avg = 0.5
     W0 = 1/(np.sqrt(2*np.pi)*sig)*np.exp(-(x-avg)**2/(2*sig**2))
+#    W0 = np.ones(J)
     return W0,D,U,fBND,dx,dt,it,x0,xf
     
 def Ugiven(x):
@@ -134,6 +137,8 @@ def animate(i):
     x = np.arange(x0,xf,dx)
     y = W[1:-1,i+1]
     line.set_data(x,y)
+    line.set_label("Numerical")
+    plt.legend()
     return line,
 
 #def animateMid(i):
@@ -146,6 +151,7 @@ x_vals = np.linspace(x0,xf,512)
 sol = np.exp(-U(x_vals)/D)
 solA = area1D(sol,(xf-x0)/512)
 sol = sol/solA
+print("solA",solA)
 
 fig = plt.figure()
 ax = plt.axes(xlim=(x0,xf),ylim=(-0.5,5))
@@ -161,3 +167,13 @@ anim = animation.FuncAnimation(fig, animate, init_func=init,frames=it,interval=1
 plt.legend()
 
 plt.show()
+
+def peaks(W):
+    peaks=[]
+    for n in range(len(W[0])-2):
+        p = []
+        for j in range(len(W)-1):
+            if W[j,n] > W[j-1,n] and W[j,n] > W[j+1,n] and W[j,n] > 1:
+                p.append(W[j,n])
+        peaks.append(p)
+    return peaks
